@@ -11,16 +11,7 @@ my $comment = "";
 
 if ($Config{'osname'} =~ /solaris/i)
 {
-	if ($> ne 0)
-	{
-		print "1..0\n";
-		warn "Root access is required to create packages on solaris. ";
-		exit 0;
-	}
-	else
-	{
-		print "1..20\n";
-	}
+	print "1..21\n";
 }
 else
 {
@@ -29,13 +20,13 @@ else
 }
 
 # test 1
-my $packager = new Software::Packager();
+my $packager = new Software::Packager('solaris');
 print_status($packager);
 
 # test 2
-$packager->package_name('SolarisTestPackage');
+$packager->package_name('1.:Sun,1.-:+TestPacka ge');
 my $package_name = $packager->package_name();
-same($package_name, 'SolarisTe');
+same('Sun1-+Tes', $package_name);
 
 # test 3
 $packager->program_name('Software Packager');
@@ -61,49 +52,57 @@ same($output_dir, "$cwd_output_dir");
 # test 7
 $packager->category("Applications");
 my $category = $packager->category();
-same($category, "Applications");
+same("Applications", $category);
 
 # test 8
-$packager->architecture("None");
-my $architecture = $packager->architecture();
-same($architecture, "None");
+my $arch = `uname -p`;
+$arch =~ s/\n//g;
+$architecture = $packager->architecture();
+same($arch, $architecture);
 
 # test 9
+$arch .= "." . `uname -m`;
+$arch =~ s/\n//g;
+$packager->architecture($arch);
+$architecture = $packager->architecture();
+same($arch, $architecture);
+
+# test 10
 $packager->icon("t/test_icon.tiff");
 my $icon = $packager->icon();
 same($icon, "t/test_icon.tiff");
 
-# test 10
+# test 11
 $packager->prerequisites("None");
 my $prerequisites = $packager->prerequisites();
 same($prerequisites, "None");
 
-# test 11
+# test 12
 $packager->vendor("Gondwanatech");
 my $vendor = $packager->vendor();
 same($vendor, "Gondwanatech");
 
-# test 12
+# test 13
 $packager->email_contact('bernard@gondwana.com.au');
 my $email_contact = $packager->email_contact();
 same($email_contact, 'bernard@gondwana.com.au');
 
-# test 13
+# test 14
 $packager->creator('R Bernard Davison');
 my $creator = $packager->creator();
 same($creator, 'R Bernard Davison');
 
-# test 14
+# test 15
 $packager->install_dir("perllib");
 my $install_dir = $packager->install_dir();
-same($install_dir, "perllib");
+same("/perllib", $install_dir);
 
-# test 15
+# test 16
 $packager->tmp_dir("t/solaris_tmp_build_dir");
 my $tmp_dir = $packager->tmp_dir();
 same($tmp_dir, "t/solaris_tmp_build_dir");
 
-# test 16
+# test 17
 # so we have finished the configuration so add the objects.
 open (MANIFEST, "< MANIFEST") or warn "Cannot open MANIFEST: $!\n";
 my $add_status = 1;
@@ -134,31 +133,28 @@ foreach my $dir  ("lib", "lib/Software", "lib/Software/Packager", "lib/Software/
 print_status($add_status);
 
 #warn Dumper($packager);
-# test 17
+# test 18
 my %hardlink;
 $hardlink{'TYPE'} = 'Hardlink';
-$hardlink{'SOURCE'} = "lib/Software/Packager.pm";
+$hardlink{'SOURCE'} = "lib/Software/Packager/Solaris.pm";
 $hardlink{'DESTINATION'} = "HardLink.pm";
 print_status($packager->add_item(%hardlink));
 
-# test 18
+# test 19
 my %softlink;
 $softlink{'TYPE'} = 'softlink';
 $softlink{'SOURCE'} = "lib/Software";
 $softlink{'DESTINATION'} = "SoftLink";
 print_status($packager->add_item(%softlink));
 
-# test 19
+# test 20
 print_status($packager->package());
 
-# test 20
+# test 21
 my $package_file = $packager->output_dir();
 $package_file .= "/" . $packager->package_name();
 $comment = "Should have created $package_file";
-print_status(-f $package_file);
-
-system("chmod -R 0777 $package_file");
-rmtree($package_file, 1, 1);
+print_status(-d $package_file);
 
 ####################
 # Functions to use

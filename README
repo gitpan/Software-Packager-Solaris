@@ -9,7 +9,7 @@ It requires Software::Packager
 
 perl Makefile.PL
 make
-make test (optional but recommended)
+make test [TEST_VERBOSE=1] (optional but recommended)
 make install
 
 DESCRIPTION
@@ -19,6 +19,8 @@ to create packages for the Solaris platform.
 This module does not do the packaging of the software but is merely a wrapper
 around the various software packaging tools already provided with the Solaris
 operating system.
+
+For more details see the documentation on Software::Packager
 
 AUTHOR
 R Bernard Davison <rbdavison@cpan.org>

@@ -1,6 +1,6 @@
 =head1 NAME
 
-Software::Packager::Solaris - Software packager for the Solaris platform.
+Software::Packager::Solaris - The Software::Packager extension for Solaris 2.5.1 and above
 
 =head1 SYNOPSIS
 
@@ -35,10 +35,11 @@ use Software::Packager::Object::Solaris;
 
 ####################
 # Variables
-our @ISA = qw( Software::Packager );
-our @EXPORT = qw();
-our @EXPORT_OK = qw();
-our $VERSION = 0.06;
+use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
+@ISA = qw( Software::Packager );
+@EXPORT = qw();
+@EXPORT_OK = qw();
+$VERSION = 0.08;
 
 ####################
 # Functions
@@ -46,7 +47,7 @@ our $VERSION = 0.06;
 ################################################################################
 # Function:	new()
 
-=head1 B<new()>
+=head2 B<new()>
 
 This method creates and returns a new Software::Packager::Solaris object.
 
@@ -62,9 +63,9 @@ sub new
 ################################################################################
 # Function:	add_item()
 
-=head1 B<add_item()>
+=head2 B<add_item()>
 
-$packager->add_item(%object_data);
+ $packager->add_item(%object_data);
 This method overrides the add_item function in the Software::Packager module.
 This method adds a new object to the package.
 
@@ -82,32 +83,6 @@ sub add_item
 
 	return 1 if $self->{'OBJECTS'}->{$object->destination()} = $object;
 	return undef;
-}
-
-################################################################################
-# Function:	_package_name()
-
-=head2 B<_package_name()>
-
-This method overrides the _package_name method in Software::Packager.
-It is used to truncate the package name if it is longer than 9 charaters and
-return it.
-
-=cut
-sub _package_name
-{
-	my $self = shift;
-	my $name =  $self->{'PACKAGE_NAME'};
-	if (length $name > 9)
-	{
-		my $new_name = sprintf ("%.9s", $name);
-		warn "Warning: Package name is to long. Truncating to $new_name\n";
-		return $new_name;
-	}
-	else
-	{
-		return $self->{'PACKAGE_NAME'};
-	}
 }
 
 ################################################################################
@@ -134,6 +109,309 @@ sub package
 	return undef unless $self->_remove_tmp();
 
 	return 1;
+}
+
+################################################################################
+# Function:	package_name()
+
+=head2 B<package_name()>
+
+This method is used to specify the abbreviated package name.
+
+Sun say: (Application Packaging Developer's Guide. Page 32)
+A valid package abbreviation must the criteria defined below: 
+
+=item *
+
+It must start with a letter. Additional charaters may be alphanumeric and can
+be the two special charaters + and -.
+
+=item *
+
+It must be nine or fewer charaters.
+
+=item *
+
+Reserved names are install, new, and all.
+
+For more details see the pkginfo(4) man page.
+
+=cut
+sub package_name
+{
+	my $self = shift;
+	my $name = shift;
+	
+	if ($name)
+	{
+		if ($name =~ /^(?![a-zA-Z])/)
+		{
+			warn "Warning: Package name \"$name\" does not start with a letter. Removing non letters from the start.\n";
+			$name =~ s/^(.*?)(?=[a-zA-Z])(.*)/$2/;
+		}
+		if ($name !~ /[a-zA-Z0-9+-]!/)
+		{
+			warn "Warning: Package name \"$name\" contains charaters other that alphanumeric, + and -. Removing them.\n";
+			$name =~ tr/a-zA-Z0-9+-//cd;
+		}
+		if (length $name > 9)
+		{
+			warn "Warning: Package name \"$name\" is longer than 9 charaters. Truncating to 9 charaters.\n";
+			$name = sprintf("%.9s", $name);
+		}
+		if ($name =~ /^install$|^new$|^all$/)
+		{
+			warn "Warning: The package name $name is reserved.\n";
+		}
+		$self->{'PACKAGE_NAME'} = $name;
+	}
+
+	return $self->{'PACKAGE_NAME'};
+}
+
+################################################################################
+# Function:	program_name()
+
+=head2 B<program_name()>
+
+This is used to specify the full package name.
+
+The program name must be less that 256 charaters.
+
+For more details see the pkginfo(4) man page.
+
+=cut
+sub program_name
+{
+	my $self = shift;
+	my $name = shift;
+	
+	if ($name)
+	{
+		if (length $name > 256)
+		{
+			warn "Warning: Package name \"$name\" is longer than 256 charaters. Truncating to 256 charaters.\n";
+			$name = sprintf("%.256s", $name);
+		}
+		$self->{'PROGRAM_NAME'} = $name;
+	}
+
+	return $self->{'PROGRAM_NAME'};
+}
+
+################################################################################
+# Function:	architecture()
+
+=head2 B<architecture()>
+
+The architecture must be a comma seperated list of alphanumeric tokens that 
+indicate the architecture associated with the package.
+The maximum length of a token is 16 charaters.
+A token should be in the format "instruction set"."platform group"
+ where:
+ instruction set is the output of `uname -p`
+ platform group is the output of `uname -m`
+
+If the architecture is not set then the current instruction set is used.
+
+For more details see the pkginfo(4) man page.
+
+=cut
+sub architecture
+{
+	my $self = shift;
+	my $name = shift;
+
+	if ($name)
+	{
+		if ($name !~ /sparc|i386|ppc/)
+		{
+			warn "Warning: Archiecture does not include a Solaris-supported instruction set.\n";
+		}
+		if ($name !~ /sun4u|sun4d|sun4m|i86pc/)
+		{
+			warn "Warning: Architecture does not include a Solaris-supported platform group.\n";
+		}
+		foreach my $arch (split ',', $name)
+		{
+			if (length $arch > 16)
+			{
+				warn "Warning: The Architecture $arch is longer than 16 charaters. Truncating it.";
+				$arch = sprintf("%.16s", $arch);
+			}
+		}
+
+		$self->{'ARCHITECTURE'} = $name;
+	}
+	else
+	{
+		unless ($self->{'ARCHITECTURE'})
+		{
+			$self->{'ARCHITECTURE'} = `uname -p`;
+			$self->{'ARCHITECTURE'} =~ s/\n//g;
+		}
+		return $self->{'ARCHITECTURE'};
+	}
+}
+
+################################################################################
+# Function:     version()
+
+=head2 B<version()>
+
+This method is used to check the format of the version and return it in the
+format required for Solaris.
+
+=item *
+
+The version must be 256 charaters or less.
+
+=item *
+
+The first charater cannot be a left parenthesis.
+
+The recommended format isi an arbitrary string of numbers in Dewey-decimal
+format.
+For more datails see the pkginfo(4) man page.
+
+=cut
+sub version
+{
+        my $self = shift;
+        my $version = shift;
+        if ($version)
+        {
+                if ($version =~ /^\(/)
+                {
+                        warn "Warning: The version starts with a left parenthesis. Removing it.\n";
+			$version =~ s/^\(//;
+                }
+                if (length $version > 256)
+                {
+                        warn "Warning: The version is longer than 256 charaters. Truncating it.\n";
+			$version = sprintf("%.256s", $version);
+                }
+                $self->{'PACKAGE_VERSION'} = $version;
+        }
+
+        return $self->{'PACKAGE_VERSION'};
+}
+
+################################################################################
+# Function:	install_dir()
+
+=head2 B<install_dir()>
+
+ $packager->install_dir('/usr/local');
+ my $base_dir = $packager->install_dir();
+ 
+This method sets the base directory for the software to be installed.
+The installation directory must start with a "/".
+ 
+=cut
+sub install_dir
+{
+	my $self = shift;
+	my $value = shift;
+
+	if ($value)
+	{
+		if ($value !~ /^\//)
+		{
+			warn "Warning: The installation directory does not start with a \"/\". Prepending \"/\" to $value.";
+			$value = "/" . $value;
+		}
+		$self->{'BASEDIR'} = $value;
+	}
+	else
+	{
+		return $self->{'BASEDIR'};
+	}
+}
+
+################################################################################
+# Function:	compatible_version()
+
+=head2 B<compatible_version()>
+
+ $packager->compatible_version('/some/path/file');
+ or
+ $packager->compatible_version($compver_stored_in_string);
+
+ my $compatible_version = $packager->compatible_version();
+ 
+This method sets the compatible versions file for the software to be installed.
+ 
+=cut
+sub compatible_version
+{
+	my $self = shift;
+	my $value = shift;
+
+	if ($value)
+	{
+		$self->{'COMPVER'} = $value;
+	}
+	else
+	{
+		return $self->{'COMPVER'};
+	}
+}
+
+################################################################################
+# Function:	space()
+
+=head2 B<space()>
+
+ $packager->space('/some/path/file');
+ or
+ $packager->space($space_data_stored_in_string);
+ my $space = $packager->space();
+ 
+This method sets the space file for the software to be installed.
+ 
+=cut
+sub space
+{
+	my $self = shift;
+	my $value = shift;
+
+	if ($value)
+	{
+		$self->{'SPACE'} = $value;
+	}
+	else
+	{
+		return $self->{'SPACE'};
+	}
+}
+
+################################################################################
+# Function:	request_script()
+
+=head2 B<request_script()>
+
+ $packager->request_script('/some/path/file');
+ or
+ $packager->request_script($request_script_stored_in_string);
+ my $request_script = $packager->request_script();
+ 
+This method sets the space file for the software to be installed.
+ 
+=cut
+sub request_script
+{
+	my $self = shift;
+	my $value = shift;
+
+	if ($value)
+	{
+		$self->{'REQUEST_SCRIPT'} = $value;
+	}
+	else
+	{
+		return $self->{'REQUEST_SCRIPT'};
+	}
 }
 
 ################################################################################
@@ -288,12 +566,8 @@ sub _create_pkgmk
 		return undef unless mkpath($output_dir, 0, 0777);
 	}
 
-	return undef unless system("pkgmk -r / -f $tmp_dir/prototype ") eq 0;
-	return undef unless system("pkgtrans -s /var/spool/pkg $output_dir/$name $name") eq 0;
-
-	# clean up our neat mess.
-	return undef unless system("chmod -R 0700 /var/spool/pkg/$name") eq 0;
-	rmtree("/var/spool/pkg/$name", 0, 1);
+	return undef unless system("pkgmk -r / -d $output_dir -f $tmp_dir/prototype ") eq 0;
+	#return undef unless system("pkgtrans -s /var/spool/pkg $output_dir/$name $name") eq 0;
 
 	return 1;
 }
