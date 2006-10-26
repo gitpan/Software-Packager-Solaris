@@ -39,7 +39,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
 @ISA = qw( Software::Packager );
 @EXPORT = qw();
 @EXPORT_OK = qw();
-$VERSION = 0.08;
+$VERSION = 0.09;
 
 ####################
 # Functions
@@ -52,6 +52,7 @@ $VERSION = 0.08;
 This method creates and returns a new Software::Packager::Solaris object.
 
 =cut
+
 sub new
 {
 	my $class = shift;
@@ -70,6 +71,7 @@ This method overrides the add_item function in the Software::Packager module.
 This method adds a new object to the package.
 
 =cut
+
 sub add_item
 {
 	my $self = shift;
@@ -95,6 +97,7 @@ This method overrides the base API in Software::Packager, it controls the
 process if package creation.
 
 =cut
+
 sub package
 {
 	my $self = shift;
@@ -137,6 +140,7 @@ Reserved names are install, new, and all.
 For more details see the pkginfo(4) man page.
 
 =cut
+
 sub package_name
 {
 	my $self = shift;
@@ -181,6 +185,7 @@ The program name must be less that 256 charaters.
 For more details see the pkginfo(4) man page.
 
 =cut
+
 sub program_name
 {
 	my $self = shift;
@@ -217,6 +222,7 @@ If the architecture is not set then the current instruction set is used.
 For more details see the pkginfo(4) man page.
 
 =cut
+
 sub architecture
 {
 	my $self = shift;
@@ -275,6 +281,7 @@ format.
 For more datails see the pkginfo(4) man page.
 
 =cut
+
 sub version
 {
         my $self = shift;
@@ -309,6 +316,7 @@ This method sets the base directory for the software to be installed.
 The installation directory must start with a "/".
  
 =cut
+
 sub install_dir
 {
 	my $self = shift;
@@ -343,6 +351,7 @@ sub install_dir
 This method sets the compatible versions file for the software to be installed.
  
 =cut
+
 sub compatible_version
 {
 	my $self = shift;
@@ -371,6 +380,7 @@ sub compatible_version
 This method sets the space file for the software to be installed.
  
 =cut
+
 sub space
 {
 	my $self = shift;
@@ -399,6 +409,7 @@ sub space
 This method sets the space file for the software to be installed.
  
 =cut
+
 sub request_script
 {
 	my $self = shift;
@@ -583,6 +594,10 @@ Software::Packager::Object::Solaris
 =head1 AUTHOR
 
 R Bernard Davison <rbdavison@cpan.org>
+
+Also, special mention should go to the following people who provided bug fixes
+
+Krist van Besien
 
 =head1 HOMEPAGE
 

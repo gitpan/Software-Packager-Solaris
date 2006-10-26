@@ -46,87 +46,104 @@ $VERSION = 0.02;
 sub _check_data
 {
 	my $self = shift;
+	my %data = @_;
 
-	$self->{'TYPE'} = lc $self->{'TYPE'};
-	if ($self->{'TYPE'} eq 'file')
+	$data{'TYPE'} = lc $data{'TYPE'};
+	if ($data{'TYPE'} eq 'file')
 	{
-	    return undef unless -f $self->{'SOURCE'};
+	    return undef unless -f $data{'SOURCE'};
 	}
-	elsif ($self->{'TYPE'} =~ /link/)
+	elsif ($data{'TYPE'} =~ /link/)
 	{
-	    return undef unless $self->{'SOURCE'} and $self->{'DESTINATION'};
+	    return undef unless $data{'SOURCE'} and $data{'DESTINATION'};
 	}
 
-	unless ($self->{'MODE'})
+	unless ($data{'MODE'})
 	{
-	    if ($self->{'TYPE'} eq 'directory')
+	    if ($data{'TYPE'} eq 'directory')
 	    {
-		$self->{'MODE'} = 0755;
+		$data{'MODE'} = 0755;
 	    }
 	    else
 	    {
-		$self->{'MODE'} =  sprintf("%04o", (stat($self->{'SOURCE'}))[2] & 07777);
+		$data{'MODE'} =  sprintf("%04o", (stat($data{'SOURCE'}))[2] & 07777);
 	    }
 	}
 
 	# make sure PART is set to a number
-	if (scalar $self->{'PART'})
+	if (scalar $data{'PART'})
 	{
-		#return undef unless $self->{'PART'} =~ /\d+/;
-		$self->{'PART'} =~ /\d+/;
+		#return undef unless $data{'PART'} =~ /\d+/;
+		$data{'PART'} =~ /\d+/;
 	}
 	else
 	{
-		$self->{'PART'} = 1;
+		$data{'PART'} = 1;
 	}
 
-	$self->{'CLASS'} = "none" unless scalar $self->{'CLASS'};
-	$self->{'USER'} = getpwuid($<) unless $self->{'USER'};
+	$data{'CLASS'} = "none" unless scalar $data{'CLASS'};
+	$data{'USER'} = getpwuid($<) unless $data{'USER'};
 
-	unless ($self->{'GROUP'})
+	unless ($data{'GROUP'})
 	{
 	    my $groups = $(;
 	    my ($group, $crap) = split / /, $groups;
-	    $self->{'GROUP'} = getgrgid($group);
+	    $data{'GROUP'} = getgrgid($group);
+	}
+
+	foreach my $key (keys %data)
+	{
+		my $function = lc $key;
+		unless ($self->$function($data{$key}))
+		{
+			#warn "Error: There is an error with the value of $key.\n";
+			return undef;
+		}
 	}
 
 	return 1;
 }
 
 ################################################################################
-# Function:	status()
-# Description:	This function returns the status for this object.
-# Arguments:	none.
-# Return:	package directory.
-#
-sub status
-{
-	my $self = shift;
-	return $self->get_value('STATUS');
-}
-
-################################################################################
 # Function:	class()
-# Description:	This function returns the class for this object.
-# Arguments:	none.
+# Description:	This function returns or sets the class for this object.
+# Arguments:	Value for CLASS or nothing.
 # Return:	object class
 #
 sub class
 {
 	my $self = shift;
-	return $self->get_value('CLASS');
+	my $value = shift;
+
+	if ($value)
+	{
+		$self->{'CLASS'} = $value;
+	}
+	else
+	{
+		return $self->{'CLASS'};
+	}
 }
 
 ################################################################################
 # Function:	part()
-# Description:	This function returns the part for this object.
-# Arguments:	none.
+# Description:	This function returns or sets the part for this object.
+# Arguments:	value for PART or nothing.
 # Return:	object part
 #
 sub part
 {
 	my $self = shift;
-	return $self->get_value('PART');
+	my $value = shift;
+
+	if ($value)
+	{
+		$self->{'PART'} = $value;
+	}
+	else
+	{
+		return $self->{'PART'};
+	}
 }
 
 ################################################################################
